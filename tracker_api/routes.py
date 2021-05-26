@@ -17,7 +17,6 @@ def index():
 
 @app.post('/api/v1/login')
 def login():
-    # TODO: this validation can be moved into some type of middleware
     auth = request.authorization
     if not auth:
         return {"message": "No input data provided"}, 400
@@ -82,8 +81,8 @@ def register():
 @token_required
 def get_weights(current_user):
     weights = Weight.query.filter_by(user_id=current_user.id).all()
-    return weights_schema.dump(weights)
-
+    weights_json = weights_schema.dump(weights)
+    return {"message": "All weights returned", "weights": weights_json}
 
 @app.route('/api/v1/track', methods=['POST'])
 @token_required
@@ -96,10 +95,11 @@ def add_weight(current_user):
     except ValidationError as err:
         return err.messages, 422
 
-    weight = data.weight
-    date = data.date
-    current_user_obj = user_schema.dump(User.query.get(current_user.public_id))
-    new_weight = Weight(weight=weight, date=date, user_id=current_user_obj)
+    weight = data['weight']
+    date = data['date']
+    current_user_obj = User.query.filter_by(public_id=current_user.public_id).first()
+    new_weight = Weight(weight=weight, date=date, user_id=current_user_obj.id, public_id=str(uuid.uuid4()))
+    print(f'new weight: {new_weight}')
     db.session.add(new_weight)
     db.session.commit()
     new_weight = weight_schema.dump(Weight.query.get(new_weight.id))

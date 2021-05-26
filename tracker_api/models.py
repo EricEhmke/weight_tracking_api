@@ -20,7 +20,8 @@ class User(db.Model, UserMixin):
     )
     public_id = db.Column(
         db.String(64),
-        unique=True
+        unique=True,
+        nullable=False
     )
     password = db.Column(
         db.String(200),
@@ -63,6 +64,7 @@ class Weight(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     weight = db.Column(db.Integer)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    public_id = db.Column(db.String(64), unique=True, nullable=False)
     date = db.Column(db.Date, nullable=False)
     
     def __repr__(self):
