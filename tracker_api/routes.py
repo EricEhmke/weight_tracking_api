@@ -39,7 +39,7 @@ def token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         token = None
-        
+
         if 'x-access-token' in request.headers:
             token = request.headers['x-access-token']
         if not token:
@@ -50,8 +50,9 @@ def token_required(f):
         except Exception as e:
             print(e)
             return {"message": "Token is invalid"}, 401
-        
+
         return f(current_user, *args, **kwargs)
+
     return decorated
 
 
@@ -77,12 +78,43 @@ def register():
     return {"message": "Username already registered"}, 422
 
 
+@app.route('/api/v1/track/<string:date>')
 @app.route('/api/v1/track', methods=['GET'])
 @token_required
-def get_weights(current_user):
+def get_weights(current_user, date=None):
+    if date:
+        print(f'date: {date}')
+        date, err = validate_date(date)
+        if err:
+            print('error in validation')
+            print(err.messages)
+            return err.messages, 422
+        return get_single_weight(current_user, date)
+    return get_all_weights(current_user)
+
+
+def validate_date(date):
+    try:
+        dt_obj = datetime.datetime.strptime(date, '%Y-%m-%d')
+        dt_obj = datetime.datetime.strftime(dt_obj, '%Y-%m-%d')
+        return dt_obj, None
+    except Exception:
+        return None, ValidationError("Date validation error, ensure date is in 'YYYY-MM-DD' format")
+
+
+def get_single_weight(current_user, date):
+    weight = Weight.query.filter_by(user_id=current_user.id, date=date).first()
+    if weight is None:
+        return {"message": f"No record for {date} found"}, 200
+    weight_json = weight_schema.dump(weight)
+    return {"message": "Weight returned", "weight": weight_json}
+
+
+def get_all_weights(current_user):
     weights = Weight.query.filter_by(user_id=current_user.id).all()
     weights_json = weights_schema.dump(weights)
     return {"message": "All weights returned", "weights": weights_json}
+
 
 @app.route('/api/v1/track', methods=['POST'])
 @token_required
@@ -91,6 +123,7 @@ def add_weight(current_user):
     if not request_json:
         return {'message': 'No input data provided'}, 400
     try:
+        # This may be able to be refactored out and use the date validation function above
         data = weight_schema.load(data=request_json)
     except ValidationError as err:
         return err.messages, 422
@@ -116,4 +149,3 @@ def delete_weight(current_user):
 @token_required
 def update_weight(current_user):
     pass
-
