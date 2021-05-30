@@ -5,9 +5,12 @@ from .models import db, User, Weight
 from .schemas import user_schema, weight_schema, weights_schema, UserSchema
 from marshmallow import ValidationError
 from functools import wraps
+from .utilities.custom_validators import validate_date
 import jwt
 import uuid
 import datetime
+
+# GET_JSON = request.get_json()
 
 
 @app.route('/', methods=['GET'])
@@ -17,6 +20,10 @@ def index():
 
 @app.post('/api/v1/login')
 def login():
+    """
+    Checks for authorization header info & sends token when auth information is correct
+    :return: a JWT token w/ user's public_id and token expiration date
+    """
     auth = request.authorization
     if not auth:
         return {"message": "No input data provided"}, 400
@@ -36,8 +43,19 @@ def login():
 
 
 def token_required(f):
+    """
+    Checks for an auth token before executing f
+    :param f: A function
+    :return: The decorated function or err if an auth token is not found
+    """
     @wraps(f)
     def decorated(*args, **kwargs):
+        """
+        Checks for an auth token. If token is found the wrapped func is executed and provided with the token data
+        :param args: args
+        :param kwargs: kwargs
+        :return: A call to the wrapped function w/ current user data passed as an arg
+        """
         token = None
 
         if 'x-access-token' in request.headers:
@@ -48,16 +66,20 @@ def token_required(f):
             data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
             current_user = User.query.filter_by(public_id=data['public_id']).first()
         except Exception as e:
-            print(e)
             return {"message": "Token is invalid"}, 401
-
+        if not current_user:
+            return {"message": "Token is invalid"}, 401
         return f(current_user, *args, **kwargs)
 
     return decorated
 
 
-@app.post('/api/v1/register')
+@app.route('/api/v1/register', methods=['POST'])
 def register():
+    """
+    Registers a new user if their username is not already token
+    :return: New user information
+    """
     request_json = request.get_json()
     if not request_json:
         return {"message": "No input data provided"}, 400
@@ -82,31 +104,32 @@ def register():
 @app.route('/api/v1/track', methods=['GET'])
 @token_required
 def get_weights(current_user, date=None):
+    """
+    Returns weights for the current user
+    :param current_user: current user information
+    :param date: the date for which to return a weight - optional
+    :return: A dict of weights
+    """
     if date:
-        print(f'date: {date}')
-        date, err = validate_date(date)
-        if err:
-            print('error in validation')
-            print(err.messages)
-            return err.messages, 422
         return get_single_weight(current_user, date)
     return get_all_weights(current_user)
 
 
-def validate_date(date):
-    try:
-        dt_obj = datetime.datetime.strptime(date, '%Y-%m-%d')
-        dt_obj = datetime.datetime.strftime(dt_obj, '%Y-%m-%d')
-        return dt_obj, None
-    except Exception:
-        return None, ValidationError("Date validation error, ensure date is in 'YYYY-MM-DD' format")
-
-
 def get_single_weight(current_user, date):
+    """
+    Gets a single weight measurement for a date
+    :param current_user: current user information
+    :param date: date for which to return weight
+    :return: a dict with a single weight measurement
+    """
     weight = Weight.query.filter_by(user_id=current_user.id, date=date).first()
     if weight is None:
-        return {"message": f"No record for {date} found"}, 200
-    weight_json = weight_schema.dump(weight)
+        return {"message": f"No record for {date} found"}, 404
+    try:
+        weight_json = weight_schema.dump(weight)
+    except ValidationError as err:
+        return err.messages, 422
+
     return {"message": "Weight returned", "weight": weight_json}
 
 
@@ -116,33 +139,46 @@ def get_all_weights(current_user):
     return {"message": "All weights returned", "weights": weights_json}
 
 
-@app.route('/api/v1/track', methods=['POST'])
+@app.route('/api/v1/track/<string:date>', methods=['POST'])
 @token_required
-def add_weight(current_user):
+def add_weight(current_user, date):
     request_json = request.get_json()
     if not request_json:
         return {'message': 'No input data provided'}, 400
     try:
-        # This may be able to be refactored out and use the date validation function above
-        data = weight_schema.load(data=request_json)
+        data = {
+            "weight": request_json['weight'],
+            "date": date
+        }
+        data = weight_schema.load(data=data)
     except ValidationError as err:
         return err.messages, 422
 
     weight = data['weight']
     date = data['date']
     current_user_obj = User.query.filter_by(public_id=current_user.public_id).first()
-    new_weight = Weight(weight=weight, date=date, user_id=current_user_obj.id, public_id=str(uuid.uuid4()))
-    print(f'new weight: {new_weight}')
-    db.session.add(new_weight)
-    db.session.commit()
-    new_weight = weight_schema.dump(Weight.query.get(new_weight.id))
+    # Check for existing weight for that date
+    weight_record = Weight.query.filter_by(user_id=current_user_obj.id, date=date).first()
+    if not weight_record:
+        weight_record = Weight(weight=weight, date=date, user_id=current_user_obj.id, public_id=str(uuid.uuid4()))
+        db.session.add(weight_record)
+        db.session.commit()
+    new_weight = weight_schema.dump(Weight.query.get(weight_record.id))
     return {'message': 'Weight added', 'weight': new_weight}
 
 
-@app.route('/api/v1/track', methods=['DELETE'])
+@app.route('/api/v1/track/<string:date>', methods=['DELETE'])
 @token_required
-def delete_weight(current_user):
-    pass
+def delete_weight(current_user, date):
+    try:
+        validate_date(date)
+    except ValidationError as err:
+        return err.messages, 422
+    weight_record = Weight.query.filter_by(public_id=current_user.public_id, date=date).first()
+    if weight_record is not None:
+        db.session.delete(weight_record)
+        db.session.commit()
+    return {'message': 'Record removed'}, 200
 
 
 @app.route('/api/v1/track', methods=['PUT'])
