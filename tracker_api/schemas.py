@@ -21,7 +21,7 @@ class WeightSchema(ma.SQLAlchemySchema):
         
     weight = ma.auto_field()
     date = fields.Date(format="%Y-%m-%d")
-    id = ma.auto_field()
+    id = ma.auto_field(required=False)
     public_id = ma.auto_field(required=False)  # setting required to false so an input can be validated with this field missing
 
 
