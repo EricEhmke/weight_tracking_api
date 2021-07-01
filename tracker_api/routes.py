@@ -12,11 +12,6 @@ import uuid
 import datetime
 
 
-@app.route('/', methods=['GET'])
-def index():
-    return 'Hello'
-
-
 @app.post('/api/v1/login')
 def login():
     """
@@ -69,15 +64,16 @@ def token_required(f):
             return {"message": "Token is invalid"}, 401
         if not current_user:
             return {"message": "Token is invalid"}, 401
-        return f(current_user, *args, **kwargs)
+        return f(current_user=current_user, *args, **kwargs)
 
     return decorated
+
 
 def get_request_json(f):
     """
     Checks for request data and returns err 400 if none exists
     :param f: A function
-    :return: Decorated function or err if no request data is providec
+    :return: Decorated function or err if no request data is provided
     """
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -87,10 +83,10 @@ def get_request_json(f):
         :param kwargs: kwargs
         :return: A call to the wrapped function with request data in JSON format
         """
-        request_json = request.get_json()
+        request_json = request.get_json(force=True)
         if not request_json:
-            return {"message":"No input data provided"}, 401
-        return f(request_json, *args, *kwargs)
+            return {"message": "No input data provided"}, 401
+        return f(request_json=request_json, *args, **kwargs)
     return decorated
 
 
@@ -99,6 +95,7 @@ def get_request_json(f):
 def register(request_json):
     """
     Registers a new user if their username is not already token
+    :param request_json: request payload json
     :return: New user information
     """
     try:
@@ -152,34 +149,14 @@ def get_single_weight(current_user, date):
 
 
 def get_all_weights(current_user):
+    """
+    Get all weights for the current user
+    :param current_user: user details for the current user
+    :return: All weights on record for current_user
+    """
     weights = Weight.query.filter_by(user_id=current_user.id).all()
     weights_json = weights_schema.dump(weights)
     return {"message": "All weights returned", "weights": weights_json}
-
-
-# @app.route('/api/v1/track/<string:date>', methods=['POST'])
-# @token_required
-# @get_request_json
-# def add_weight(current_user, date, request_json):
-#     try:
-#         data = {
-#             "weight": request_json['weight'],
-#             "date": date
-#         }
-#         data = weight_schema.load(data=data)
-#     except ValidationError as err:
-#         return err.messages, 422
-#
-#     weight = data['weight']
-#     date = data['date']
-#     current_user_obj = User.query.filter_by(public_id=current_user.public_id).first()
-#     # Check for existing weight for that date
-#     weight_record = Weight.query.filter_by(user_id=current_user_obj.id, date=date).first()
-#     new_weight = None
-#     if not weight_record:
-#         new_weight = create_weight_record(weight=weight, date=date, user_id=current_user_obj.id)
-#     new_weight = new_weight if new_weight is not None else weight_record
-#     return {'message': 'Weight added', 'weight': new_weight}
 
 
 @app.route('/api/v1/track/<string:date>', methods=['DELETE'])
@@ -196,7 +173,7 @@ def delete_weight(current_user, date):
     return {'message': 'Record deleted'}, 200
 
 
-@app.route('/api/v1/track/<string:date>', methods=['PUT', 'POST'])
+@app.route('/api/v1/track/<string:date>', methods=['POST', 'PUT'])
 @token_required
 @get_request_json
 def add_or_update_weight(current_user, date, request_json):
@@ -214,8 +191,9 @@ def add_or_update_weight(current_user, date, request_json):
         weight_record.weight = data['weight']
         db.session.commit()
         updated_weight = weight_schema.dump(Weight.query.get(weight_record.id))
-        return {'message': 'Weight updated', 'weight': updated_weight}
+        return {'message': 'Weight updated', 'weight': updated_weight}, 200
     else:
         current_user_obj = User.query.filter_by(public_id=current_user.public_id).first()
-        new_weight = create_weight_record(weight=data['weight'], date=date['date'], user_id=current_user_obj.id)
-        return {'message': 'Weight added', 'weight': new_weight}
+        print(f'data: {data} type: {type(data)}')
+        new_weight = create_weight_record(weight=data['weight'], date=data['date'], user_id=current_user_obj.id)
+        return {'message': 'Weight added', 'weight': new_weight}, 201
