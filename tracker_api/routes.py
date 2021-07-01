@@ -194,6 +194,5 @@ def add_or_update_weight(current_user, date, request_json):
         return {'message': 'Weight updated', 'weight': updated_weight}, 200
     else:
         current_user_obj = User.query.filter_by(public_id=current_user.public_id).first()
-        print(f'data: {data} type: {type(data)}')
         new_weight = create_weight_record(weight=data['weight'], date=data['date'], user_id=current_user_obj.id)
         return {'message': 'Weight added', 'weight': new_weight}, 201
