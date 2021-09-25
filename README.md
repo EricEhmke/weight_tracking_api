@@ -8,7 +8,7 @@ This flask application offers a simple API to track weight loss or weight gain o
 Simple API documentation can be found here: https://documenter.getpostman.com/view/13359083/UUxxgUAu
 
 
-###Register /api/v1/register:
+### Register /api/v1/register:
 ```
 POST /api/v1/register HTTP/1.1
 {
@@ -17,7 +17,7 @@ POST /api/v1/register HTTP/1.1
 }
 ```
 
-###Login /api/v1/login:
+### Login /api/v1/login:
 ```
 POST /api/v1/login HTTP/1.1
 {
@@ -28,7 +28,7 @@ POST /api/v1/login HTTP/1.1
 
 Login will return a token to be used for further requests under the `x-access-token` HTTP header.
 
-###Add a Weight /api/v1/track/{STR:DATE YYYY-MM-DD}: 
+### Add a Weight /api/v1/track/{STR:DATE YYYY-MM-DD}: 
 ```
 POST /api/v1/track/{STR:DATE YYYY-MM-DD} HTTP/1.1
 Host: 127.0.0.1:5000
@@ -38,7 +38,7 @@ x-access-token: {TOKEN}
 }
 ```
 
-###Update a weight /api/v1/track/{string:DATEYYYY-MM-DD}:
+### Update a weight /api/v1/track/{string:DATEYYYY-MM-DD}:
 ```
 PUT /api/v1/track/{string:DATEYYYY-MM-DD} HTTP/1.1
 x-access-token: {TOKEN}
@@ -47,25 +47,25 @@ x-access-token: {TOKEN}
 }
 ```
 
-###Get all weights /api/v1/track: 
+### Get all weights /api/v1/track: 
 ```
 GET /api/v1/track/{string:DATEYYYY-MM-DD}HTTP/1.1
 x-access-token: {TOKEN}
 ```
 
-###Get a weight for a specific date /api/v1/track/{string:DATEYYYY-MM-DD}: 
+### Get a weight for a specific date /api/v1/track/{string:DATEYYYY-MM-DD}: 
 ```
 GET /api/v1/track/{DATE YYYY-MM-DD} HTTP/1.1
 x-access-token: {TOKEN}
 ```
 
-###Delete a weight for a specific date /api/v1/delete/{string:DATEYYYY-MM-DD}:
+### Delete a weight for a specific date /api/v1/delete/{string:DATEYYYY-MM-DD}:
 ```
 DELETE /api/v1/track/{DATE YYYY-MM-DD}HTTP/1.1
 x-access-token: {TOKEN}
 ```
 
-###Get a rolling average of weights /api/v1/average/{int:rolling window (default=7)}  
+### Get a rolling average of weights /api/v1/average/{int:rolling window (default=7)}  
 ```
 GET /api/v1/track/average HTTP/1.1
 x-access-token: {TOKEN}
