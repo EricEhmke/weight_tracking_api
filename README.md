@@ -28,7 +28,7 @@ POST /api/v1/login HTTP/1.1
 
 Login will return a token to be used for further requests under the `x-access-token` HTTP header.
 
-### Add a Weight /api/v1/track/{STR:DATE YYYY-MM-DD}: 
+### Add a Weight /api/v1/track/{string:DATEYYYY-MM-DD}: 
 ```
 POST /api/v1/track/{STR:DATE YYYY-MM-DD} HTTP/1.1
 Host: 127.0.0.1:5000
