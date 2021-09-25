@@ -62,7 +62,7 @@ class User(db.Model, UserMixin):
 
 class Weight(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    weight = db.Column(db.Integer)
+    weight = db.Column(db.Float)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     public_id = db.Column(db.String(64), unique=True, nullable=False)
     date = db.Column(db.Date, nullable=False)

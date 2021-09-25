@@ -20,3 +20,21 @@ def create_weight_record(weight, date, user_id, public_id=None):
     return new_weight
 
 
+def get_single_weight(current_user, date):
+    """
+    Gets a single weight measurement for a date
+    :param current_user: current user information
+    :param date: date for which to return weight
+    :return: a dict with a single weight measurement
+    """
+    weight = Weight.query.filter_by(user_id=current_user.id, date=date).first()
+    return weight
+
+
+def get_all_weights(current_user):
+    """
+    Get all weights for the current user
+    :param current_user: user details for the current user
+    :return: All weights on record for current_user
+    """
+    return Weight.query.filter_by(user_id=current_user.id).all()

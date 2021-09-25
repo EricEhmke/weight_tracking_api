@@ -7,7 +7,6 @@ db = SQLAlchemy()
 ma = Marshmallow()
 login_manager = LoginManager()
 
-# test username: snacktime password: password
 
 def init_app():
     """Construct the core application."""

@@ -2,14 +2,15 @@ from flask import request
 from datetime import datetime as dt
 from flask import current_app as app
 from .models import db, User, Weight
-from .schemas import user_schema, weight_schema, weights_schema
+from .schemas import user_schema, weight_schema, weights_schema, WeightSchema
 from marshmallow import ValidationError
 from functools import wraps
 from .utilities.custom_validators import validate_date
-from .utilities.db_services import create_weight_record
+from .utilities.db_services import create_weight_record, get_single_weight, get_all_weights
 import jwt
 import uuid
 import datetime
+import pandas as pd
 
 
 @app.post('/api/v1/login')
@@ -126,37 +127,18 @@ def get_weights(current_user, date=None):
     :return: A dict of weights
     """
     if date:
-        return get_single_weight(current_user, date)
-    return get_all_weights(current_user)
-
-
-def get_single_weight(current_user, date):
-    """
-    Gets a single weight measurement for a date
-    :param current_user: current user information
-    :param date: date for which to return weight
-    :return: a dict with a single weight measurement
-    """
-    weight = Weight.query.filter_by(user_id=current_user.id, date=date).first()
-    if weight is None:
-        return {"message": f"No record for {date} found"}, 404
-    try:
-        weight_json = weight_schema.dump(weight)
-    except ValidationError as err:
-        return err.messages, 422
-
-    return {"message": "Weight returned", "weight": weight_json}
-
-
-def get_all_weights(current_user):
-    """
-    Get all weights for the current user
-    :param current_user: user details for the current user
-    :return: All weights on record for current_user
-    """
-    weights = Weight.query.filter_by(user_id=current_user.id).all()
-    weights_json = weights_schema.dump(weights)
-    return {"message": "All weights returned", "weights": weights_json}
+        try:
+            validate_date(date)
+        except ValidationError as e:
+            return {"message": {e.messages}}, 422
+        weight_record = get_single_weight(current_user, date)
+        if weight_record is None:
+            return {"message": f"No record for {date} found"}, 404
+        weight_json = weights_schema.dump(weight_record)
+        return {"message": "Weight returned", "weight": weight_json}
+    all_weights = get_all_weights(current_user)
+    all_weights_json = weights_schema.dump(all_weights)
+    return {"message": "All weights returned", "weights": all_weights_json}
 
 
 @app.route('/api/v1/track/<string:date>', methods=['DELETE'])
@@ -166,10 +148,12 @@ def delete_weight(current_user, date):
         validate_date(date)
     except ValidationError as err:
         return err.messages, 422
-    weight_record = Weight.query.filter_by(user_id=current_user.id, date=date).first()
+    weight_record = Weight.query.filter_by(user_id=current_user.id, date=date)
     if weight_record is not None:
-        db.session.delete(weight_record)
-        db.session.commit()
+        # delete all records in case there is a duplicate for that date
+        for record in weight_record:
+            db.session.delete(record)
+            db.session.commit()
     return {'message': 'Record deleted'}, 200
 
 
@@ -195,4 +179,28 @@ def add_or_update_weight(current_user, date, request_json):
     else:
         current_user_obj = User.query.filter_by(public_id=current_user.public_id).first()
         new_weight = create_weight_record(weight=data['weight'], date=data['date'], user_id=current_user_obj.id)
-        return {'message': 'Weight added', 'weight': new_weight}, 201
+        new_weight_json = weight_schema.dump(new_weight)
+        return {'message': 'Weight added', 'weight': new_weight_json}, 201
+
+
+@app.route('/api/v1/track/average/<int:days>')
+@app.route('/api/v1/track/average')
+@token_required
+def compute_avg(current_user, days=7):
+    """
+    Computes the rolling # `days` average weight. Missing dates are forward filled
+    :param current_user: current_user information
+    :param days: number of days to compute rolling average
+    :return: the rolling average weights
+    """
+    all_weights_record = get_all_weights(current_user)
+    all_weights = weights_schema.dump(all_weights_record)
+    all_weights_df = pd.json_normalize(all_weights)
+    # TODO: ffill any missing days between beginning and now
+    # date_index = pd.date_range(first_date, last_date, freq='D')
+    # all_weights_df.reindex(date_index, method='ffill')
+    # https://pandas.pydata.org/pandas-docs/dev/reference/api/pandas.DataFrame.reindex.html
+
+    weight_rolling_avg = all_weights.rolling(window=days).mean()
+    # TODO: Add more weight records to get a rolling average
+    return {'message': f'Rolling average for {days} days', 'weights': weight_rolling_avg.to_json()}
