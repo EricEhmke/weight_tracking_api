@@ -91,7 +91,7 @@ def get_request_json(f):
     return decorated
 
 
-@app.route('/api/v1/register', methods=['POST'])
+@app.post('/api/v1/register')
 @get_request_json
 def register(request_json):
     """
@@ -116,8 +116,8 @@ def register(request_json):
     return {"message": "Username already registered"}, 422
 
 
-@app.route('/api/v1/track/<string:date>')
-@app.route('/api/v1/track', methods=['GET'])
+@app.get('/api/v1/track/<string:date>')
+@app.get('/api/v1/track')
 @token_required
 def get_weights(current_user, date=None):
     """
@@ -134,14 +134,14 @@ def get_weights(current_user, date=None):
         weight_record = get_single_weight(current_user, date)
         if weight_record is None:
             return {"message": f"No record for {date} found"}, 404
-        weight_json = weights_schema.dump(weight_record)
+        weight_json = weight_schema.dump(weight_record)
         return {"message": "Weight returned", "weight": weight_json}
     all_weights = get_all_weights(current_user)
     all_weights_json = weights_schema.dump(all_weights)
     return {"message": "All weights returned", "weights": all_weights_json}
 
 
-@app.route('/api/v1/track/<string:date>', methods=['DELETE'])
+@app.delete('/api/v1/track/<string:date>')
 @token_required
 def delete_weight(current_user, date):
     try:
@@ -154,10 +154,12 @@ def delete_weight(current_user, date):
         for record in weight_record:
             db.session.delete(record)
             db.session.commit()
-    return {'message': 'Record deleted'}, 200
+    return {'message': 'Weight deleted'}, 200
 
 
-@app.route('/api/v1/track/<string:date>', methods=['POST', 'PUT'])
+# @app.route('/api/v1/track/<string:date>', methods=['POST', 'PUT'])
+@app.post('/api/v1/track/<string:date>')
+@app.put('/api/v1/track/<string:date>')
 @token_required
 @get_request_json
 def add_or_update_weight(current_user, date, request_json):
@@ -183,8 +185,8 @@ def add_or_update_weight(current_user, date, request_json):
         return {'message': 'Weight added', 'weight': new_weight_json}, 201
 
 
-@app.route('/api/v1/track/average/<int:days>')
-@app.route('/api/v1/track/average')
+@app.get('/api/v1/track/average/<int:days>')
+@app.get('/api/v1/track/average')
 @token_required
 def compute_avg(current_user, days=7):
     """
