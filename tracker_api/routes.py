@@ -21,7 +21,7 @@ def login():
     """
     auth = request.authorization
     if not auth:
-        return {"message": "No input data provided"}, 400
+        return {"message": "Wrong or no auth header information provided"}, 400
     username = auth.username
     password = auth.password
     existing_user = User.query.filter_by(username=username).first()
