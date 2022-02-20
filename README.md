@@ -1,9 +1,11 @@
 # weight_tracking_api
 A flask API for tracking weight - Work in progress
-
 ## Description
 This flask application offers a simple API to track weight loss or weight gain over time via  rolling average.
-
+## Setup
+1. Install dependencies using python poetry
+2. Define `SECRET_KEY` and `FLASK_ENV` in a `.env` file in the root directory
+3. Launch the server using `flask run` via the command line.
 ## API
 Simple API documentation can be found here: https://documenter.getpostman.com/view/13359083/UUxxgUAu
 

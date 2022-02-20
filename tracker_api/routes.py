@@ -16,7 +16,8 @@ import pandas as pd
 @app.post('/api/v1/login')
 def login():
     """
-    Checks for authorization header info & sends token when auth information is correct
+    Checks for authorization header info & sends token when
+    auth information is correct
     :return: a JWT token w/ user's public_id and token expiration date
     """
     auth = request.authorization
