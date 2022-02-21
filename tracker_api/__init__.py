@@ -1,5 +1,6 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
+from pymongo import MongoClient
 from flask_login import LoginManager
 from flask_marshmallow import Marshmallow
 

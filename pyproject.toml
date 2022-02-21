@@ -15,6 +15,7 @@ flask-marshmallow = "^0.14.0"
 python-dotenv = "^0.19.2"
 marshmallow-sqlalchemy = "^0.27.0"
 PyJWT = "^2.3.0"
+pymongo = "^4.0.1"
 
 [tool.poetry.dev-dependencies]
 

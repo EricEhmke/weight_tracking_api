@@ -16,6 +16,4 @@ class Config:
     FLASK_ENV = environ.get('FLASK_ENV')
 
     # Database
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///test.db'
-    SQLALCHEMY_ECHO = False
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    MONGODB_DB_URL = environ.get('MONGO_DB_URL')
