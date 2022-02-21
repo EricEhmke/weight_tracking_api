@@ -1,4 +1,3 @@
-from tracker_api.models import db, Weight
 import uuid
 
 

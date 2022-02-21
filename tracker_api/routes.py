@@ -1,8 +1,6 @@
 from flask import request
 from datetime import datetime as dt
 from flask import current_app as app
-from .models import db, User, Weight
-from .schemas import user_schema, weight_schema, weights_schema, WeightSchema
 from marshmallow import ValidationError
 from functools import wraps
 from .utilities.custom_validators import validate_date
@@ -12,6 +10,10 @@ import uuid
 import datetime
 import pandas as pd
 
+# TODO
+"""
+    Build models for mongodb
+"""
 
 @app.post('/api/v1/login')
 def login():

@@ -1,12 +1,8 @@
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
 from pymongo import MongoClient
-from flask_login import LoginManager
 from flask_marshmallow import Marshmallow
 
-db = SQLAlchemy()
 ma = Marshmallow()
-login_manager = LoginManager()
 
 
 def init_app():
@@ -14,8 +10,9 @@ def init_app():
     app = Flask(__name__, instance_relative_config=False)
     app.config.from_object('config.Config')
 
-    db.init_app(app)
-    login_manager.init_app(app)
+    client = MongoClient(app.config['MONGO_DB_URL'])
+    db = client.weight_tracker
+
     ma.init_app(app)
 
     with app.app_context():
