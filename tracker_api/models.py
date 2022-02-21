@@ -1,4 +1,3 @@
-"""Data models."""
 from . import db
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -27,14 +26,6 @@ class User(db.Model, UserMixin):
         db.String(200),
         nullable=False,
         unique=False,
-        primary_key=False
-    )
-    weights = db.relationship(
-        'Weight',
-        backref='user',
-        lazy=True,
-        cascade="all, delete-orphan"
-    )
     created = db.Column(
         db.DateTime,
         index=False,
